@@ -4,13 +4,17 @@ import com.prime.task.Root;
 import com.prime.task.DataModel;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,14 +24,16 @@ import static com.prime.task.TaskApplication.HEADERS;
 @Service("fileService")
 class FileRemoteService implements RemoteService{
 
+    @Autowired
+    ResourceLoader resourceloader;
     @Value("classpath:shared/Source2_RR_911_Calls.csv")
-    private File scvSource;
+    private String scvSource;
     @Value("classpath:shared/Source1_RR_311_Calls.xml")
-    private File xmlSource;
+    private String xmlSource;
     @Override
     public List<DataModel> getData() {
         try {
-            Reader in = new FileReader(scvSource);
+            Reader in = new InputStreamReader(resourceloader.getResource(scvSource).getInputStream());
             ArrayList<DataModel> dataModels = new ArrayList<>();
             Iterable<CSVRecord> records = CSVFormat.DEFAULT
                     .withHeader(HEADERS)
@@ -47,7 +53,7 @@ class FileRemoteService implements RemoteService{
             }
             JAXBContext context = JAXBContext.newInstance(Root.class);
             Unmarshaller m = context.createUnmarshaller();
-            Root root=(Root) m.unmarshal(xmlSource);
+            Root root=(Root) m.unmarshal(resourceloader.getResource(xmlSource).getInputStream());
             root.dataModels.forEach(w->{
                 w.setSourceName("xml");
                 w.setInfo("xml file");
